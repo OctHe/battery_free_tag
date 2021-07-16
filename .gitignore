@@ -13,6 +13,7 @@ tags
 
 # Data files
 *.bin
+file_options.txt
 
 # Compiled Object files
 *.slo

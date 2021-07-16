@@ -1,14 +1,21 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Plot the output file of the gnuradio *packet demux* block.
+% This can display the results of the above
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 clear;
 close all;
 
 %% Params
 samp_rate = 1e6;
+fft_size = 16;
 
 tx = 4;
 tag = 1;
-fft_size = 16;
+
 sym_sync = 8;
-sym_pd = 188;
+sym_pd = 180;
 
 DC_INDEX = fft_size / 2 + 1;
 data_index = DC_INDEX + 1;
@@ -21,7 +28,6 @@ read_raw_size = 10e6;
 read_pkt_num = 3;
 
 pkt_size = (sym_sync + tx + sym_pd) * fft_size;
-
 read_pkt_size = read_pkt_num * pkt_size;
 
 %% CE WORD
@@ -40,6 +46,7 @@ elseif tx == 4
         1, -1, 1, -1
         1, -1j, -1, 1j
         ];
+    
     ce_data_inv = [
         0.25, 0.25, 0.25, 0.25
         0.25, -0.25j, -0.25, 0.25j
@@ -99,8 +106,6 @@ for pkt_index = 1: read_pkt_num
     H_from_word = mean(Hmat, 1);
     H_from_word = H_from_word / H_from_word(1) * abs(H_from_word(1));
     
-
-    
     power_max = sum(abs(H), 2)^2;
     
     % Payload power
@@ -122,24 +127,21 @@ for pkt_index = 1: read_pkt_num
     % Results
     disp(['******************************']);
     disp(['Packe index: ' num2str(pkt_index)]);
+    disp(['H:   (' num2str(H) ')']);
     disp(['RX power (time): ' num2str(power)]);
     disp(['Max power: ' num2str(power_max)]);
     disp(['Power CE recovery: ' num2str(power_ce_word_recovery)]);
     disp(['Power CE: ' num2str(power_ce_word_rx)]);
     
-    if pkt_index <= 5
+    if pkt_index <= 10
         figure; hold on;
-        plot(abs(ce_word_recovery).^2);
-        plot(abs(ce_word_rx).^2);
-
-        figure; hold on;
-        plot(abs(each_pkt));
+        plot(real(each_pkt));
+        plot(imag(each_pkt));
     end
     
 end
 
 %% Figure
-
 if disp_tag_reflection
     figure; hold on;
     plot(((read_raw_start +1): read_raw_size) / samp_rate, real(data));

@@ -101,10 +101,12 @@ namespace gr {
         float phase;
 
         phase = pmt::f32vector_ref(pmt::cdr(msg), d_index);
-        d_weight = gr_expj(TWO_PI * phase);
 
         if(d_mode & MODE_BF)
+        {
+            d_weight = gr_expj(TWO_PI * phase);
             d_pd_state = STATE_TX_PD_BF;
+        }
 
     }
 

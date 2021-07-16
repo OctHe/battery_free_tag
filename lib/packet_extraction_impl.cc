@@ -104,6 +104,9 @@ namespace gr {
                     {
                         d_pkt_index = 0;
                         d_peak = 0;
+                        
+                        // Display the timestamp when detect the signal
+                        std::cout << "Timestamp: " << d_tstamp / d_samp_rate << " s" << std::endl;
 
                         d_rx_state = STATE_RX_SS;
 
@@ -180,18 +183,6 @@ namespace gr {
                 for(unsigned i = 0; i < noutput_items * d_fft_size; i++)
                 {
                     
-                    // d_offset == 0 means the start point of a packet
-                    if(!d_offset)
-                    {
-                        // std::ofstream fout("timestamp.txt", std::ios::out);
-                        std::cout << "Timestamp: " << d_tstamp / d_samp_rate << " s" << std::endl;
-                        // if(fout.is_open())
-                        // {
-                        //     std::cout << " File is opened" << std::endl;
-                        //     fout << "Timestamp: " << d_tstamp / d_samp_rate << std::endl;
-                        //     fout.close();
-                        // }
-                    }
 
                     out[i] = in_sig[i];
 

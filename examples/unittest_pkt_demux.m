@@ -8,7 +8,7 @@ clear;
 close all;
 
 %% Params
-file_name = 'debug_tag_pkt.bin';
+file_name = 'tag_reflection_cs_420cmx420cm/tag_pkt_dof_1.bin';
 
 file_options.fft_size = 16;
 file_options.tx = 4;
@@ -23,7 +23,7 @@ sym_pd = file_options.sym_pd;
 dc_index = fft_size / 2 + 1;
 data_index = dc_index + 1;
 
-read_pkt_num = 4;
+read_pkt_num = 2;
 pkt_size = (sym_sync + tx + sym_pd) * fft_size;
 read_pkt_size = read_pkt_num * pkt_size;
 
@@ -124,23 +124,17 @@ for pkt_index = 1: read_pkt_num
     power_ce_rx_baseline_mat(pkt_index) = power_ce_rx;
     power_ce_rcvr_baseline_mat(pkt_index) = power_ce_rcvr;
     
-%     if pkt_index <= 5
-%         figure; hold on;
-%         plot(real(each_pkt));
-%         plot(imag(each_pkt));
-%     end
-    
 end
 
-[ch_mat, power_pd_mat, power_max_mat] = tag_pkt_demux(file_name, file_options);
+[power_mat, ch_mat] = pkt_demux(file_name, file_options);
 
 %% Figure;
-ch_diff = ch_baseline_mat - ch_mat
+% ch_diff = ch_baseline_mat - ch_mat
 
 figure; hold on;
 plot(power_pd_rx_baseline_mat);
-plot(power_pd_mat);
+plot(power_mat.pd);
 
 figure; hold on;
 plot(power_max_baseline_mat);
-plot(power_max_mat);
+plot(power_mat.max);

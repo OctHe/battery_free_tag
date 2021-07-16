@@ -24,10 +24,11 @@ class top_block(gr.top_block):
         ##################################################
         # Variables
         ##################################################
-        file_name = options.file_name
+        input_file = options.input_file
+        output_file = options.output_file
         tx = options.tx
         tag = options.tag
-        sym_sync = options.sync
+        sym_sync = options.sync_word
         sym_pd = options.payload
         sym_pkt = sym_sync + tx + sym_pd
 
@@ -42,9 +43,9 @@ class top_block(gr.top_block):
         ##################################################
 
         # File sources
-        self.blocks_file_source_0 = blocks.file_source(gr.sizeof_gr_complex*1, file_name, False)
+        self.blocks_file_source_0 = blocks.file_source(gr.sizeof_gr_complex*1, input_file, False)
         self.blocks_file_source_0.set_begin_tag(pmt.PMT_NIL)
-        self.blocks_file_sink_2 = blocks.file_sink(gr.sizeof_gr_complex*fft_size, 'debug_tag_pkt.bin', False)
+        self.blocks_file_sink_2 = blocks.file_sink(gr.sizeof_gr_complex*fft_size, output_file, False)
         self.blocks_file_sink_2.set_unbuffered(False)
 
         # File sinks
@@ -86,21 +87,20 @@ if __name__ == '__main__':
     "Please set the following options according to the input file."
 
     parser = OptionParser(usage=usage, option_class=eng_option, conflict_handler="resolve")
-    #  expert_grp = parser.add_option_group("Expert")
-    parser.add_option("-i", "--file_name", type="string",
+    parser.add_option("-i", "--input_file", type="string",
                       help="set the input file")
-    parser.add_option("-o", "--file_name", type="string", default="debug_tag_pkt",
-                      help="set the input file [default=%default]")
+    parser.add_option("-o", "--output_file", type="string", default="debug_tag_pkt",
+                      help="set the output file [default=%default]")
     parser.add_option("-t", "--tx", type="int",
                       help="set the number of power sources")
-    parser.add_option("-s", "--sync", type="int",
+    parser.add_option("-g", "--tag", type="int",
+                      help="set the number of tags")
+    parser.add_option("-s", "--sync_word", type="int",
                       help="set the number of sync words")
     parser.add_option("-p", "--payload", type="int",
                       help="set the number of payload")
-    parser.add_option("-g", "--tag", type="int", default=1,
-                      help="set the number of tags [default=%default]")
     parser.add_option("","--debug", action="store_true",
-                      help="Log files for debug. This file is at the work directory")
+                      help="Log files for debug. These files are at the work directory")
 
     (options, args) = parser.parse_args ()
 

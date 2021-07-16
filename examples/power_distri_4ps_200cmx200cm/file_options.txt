@@ -1,0 +1,3 @@
+tx = 4
+sym_sync = 8
+sym_pd = 188

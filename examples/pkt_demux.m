@@ -5,7 +5,7 @@
 % file_options includes the frame structure: fft_size, sym_sync, tx, sym_pd
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [ch_mat, power_pd_mat, power_max_mat] = tag_pkt_demux(file_name, file_options)
+function [power_mat, ch_mat] = pkt_demux(file_name, file_options)
 
 %% Params
 fft_size = file_options.fft_size;
@@ -45,6 +45,11 @@ else
     error("TX error");
 end
 
+ce_word_f = zeros(fft_size, 1);
+ce_word_f(data_index) = 1;
+ce_word = fft_size * ifft(ifftshift(ce_word_f));
+ce_word = kron(ce_data, ce_word.');
+
 %% Pkt demux
 fid = fopen(file_name, 'r');
 raw = fread(fid, 'float32');
@@ -56,11 +61,11 @@ pkt_num = floor(length(read_pkt) / pkt_size);
 read_pkt = read_pkt(1: pkt_size * pkt_num);
 read_pkt = reshape(read_pkt, pkt_size, pkt_num);
 
-disp(['Packet number: ' num2str(pkt_num)]);
-
 ch_mat = zeros(pkt_num, tx);
-power_max_mat = zeros(pkt_num, 1);
-power_pd_mat = zeros(pkt_num, 1);
+power_mat.max = zeros(pkt_num, 1);
+power_mat.pd = zeros(pkt_num, 1);
+power_mat.norm = zeros(pkt_num, 1);
+power_mat.noise = zeros(pkt_num, 1);
 
 for pkt_index = 1: pkt_num
     
@@ -78,15 +83,26 @@ for pkt_index = 1: pkt_num
     H = H / H(1) * abs(H(1));
     
     power_max = sum(abs(H), 2)^2;
+    power_norm = H * H';
     
     % Power of the payload
     rx_pd = each_pkt((sym_sync + tx) * fft_size +1: end);
     
     power = (rx_pd' * rx_pd) / (sym_pd * fft_size);
-
+    
+    % Noise power estimation
+    ce_word_rcvr = H * ce_word;
+    
+    power_ce_rcvr = (ce_word_rcvr * ce_word_rcvr') / fft_size / tx;
+    power_ce_rx = (ce_word_rx' * ce_word_rx) / fft_size / tx;
+    power_mat.noise(pkt_index) = power_ce_rx - power_ce_rcvr;
+    
     % Results
     ch_mat(pkt_index, :) = H;
-    power_pd_mat(pkt_index) = power;
-    power_max_mat(pkt_index) = power_max;
+    power_mat.pd(pkt_index) = power;
+    power_mat.max(pkt_index) = power_max;
+    power_mat.norm(pkt_index) = power_norm;
     
 end
+power_mat.pkt_num = pkt_num;
+

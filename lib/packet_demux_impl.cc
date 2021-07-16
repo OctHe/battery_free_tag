@@ -124,11 +124,9 @@ namespace gr {
                         d_nrg += nrg[i * d_fft_size + j];
 
                     d_sym_offset ++;
-                    // std::cout << "Symbol_offset " << d_sym_offset << std::endl;
         
                     if(d_sym_offset == d_sym_pd)
                     {
-                        // std::cout << "Symbol_offset " << d_sym_offset << std::endl;
                         // Output the energy
                         d_nrg = d_nrg / (d_sym_pd * d_fft_size);
                         

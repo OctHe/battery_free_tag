@@ -45,16 +45,18 @@ class phase_alignment(gr.sync_block):
             self.ce_word_inv = np.array([[0.5, 0.5], [0.5, -0.5]])
         elif tx == 4:
             self.ce_word_inv = np.array([
-                [0.5, 0.5, 0.5, 0.5],
-                [0.5, -0.5j, -0.5, 0.5j],
-                [0.5, -0.5, 0.5, -0.5],
-                [0.5, 0.5j, -0.5, -0.5j]
+                [0.25, 0.25, 0.25, 0.25],
+                [0.25, -0.25j, -0.25, 0.25j],
+                [0.25, -0.25, 0.25, -0.25],
+                [0.25, 0.25j, -0.25, -0.25j]
                 ])
 
+        self.ref_ch = np.zeros([1, tx], dtype=complex)
         self.ch_list = np.zeros([tag, tx], dtype=complex)
         self.phase = np.zeros([tx, 1], dtype=float)
 
         self.pkt_num = 0
+        self.collected_ch_num = 0
 
         self.message_port_register_in(pmt.intern('ce'))
         self.message_port_register_out(pmt.intern('phase'))
@@ -70,6 +72,9 @@ class phase_alignment(gr.sync_block):
 
         dc_index = self.fft_size / 2
         DATA_INDEX = dc_index + 1
+
+        corr_vec = np.zeros(self.tag, dtype=float)
+        corr_thr = 0.95
 
         # Packet counter
         self.pkt_num = self.pkt_num + 1
@@ -90,46 +95,69 @@ class phase_alignment(gr.sync_block):
         for tx_index in range(self.tx):
             ce_word_rx[tx_index] = ce_word_sig_reshape[DATA_INDEX][tx_index]
 
-        # Channel collection and phase normalization
-        if self.pkt_num <= self.tag:
+        # Channel estimation for the received signal
+        rx_ch = np.dot(ce_word_rx, self.ce_word_inv)
+        rx_ch = rx_ch / rx_ch[0] * np.abs(rx_ch[0])
 
-            self.ch_list[self.pkt_num -1, :] = np.dot(ce_word_rx, self.ce_word_inv)
+        # Channel collection at the cold start process 
+        if self.collected_ch_num < self.tag:
 
-            self.ch_list[self.pkt_num -1, :] = self.ch_list[self.pkt_num -1, :] \
-                    / self.ch_list[self.pkt_num -1, 0] * np.abs(self.ch_list[self.pkt_num -1, 0])
+            # Coefficient
+            for tag_index in range(self.collected_ch_num):
+                corr_vec[tag_index] = np.abs(np.dot(self.ch_list[tag_index, :], rx_ch.conj().T)) \
+                        / np.linalg.norm(self.ch_list[tag_index, :]) \
+                        / np.linalg.norm(rx_ch)
 
-            if self.pkt_num < self.tag:
-                return
+            # Check whether the channel has been received before
+            # If the channel has been received, than update it
+            if np.max(corr_vec) > corr_thr:
+                self.ch_list[np.argmax(corr_vec), :] = rx_ch
+                print "Frame from tag ", np.argmax(corr_vec) +1
+            else:
+                self.ch_list[self.collected_ch_num, :] = rx_ch
+                self.collected_ch_num = self.collected_ch_num +1
+                print "Frame from tag ", self.collected_ch_num
+            
+            if self.collected_ch_num == self.tag:
+                print "Transfer to beamforming mode"
 
-        # Channel update and phase normalization
-        if self.pkt_num > self.tag:
+                # Phase alignment
+                self.phase = self.iterative_phase_alignment(self.ite_loop, 0.01)
 
-            ch_list_index = self.pkt_num % self.tag -1
-            self.ch_list[ch_list_index, :] = np.dot(ce_word_rx, self.ce_word_inv)
+                # Send the aligned phase using message to each power source
+                msg_vec = pmt.make_f32vector(self.tx, 0)
+                for tx_index in range(self.tx):
+                    pmt.f32vector_set(msg_vec, tx_index, self.phase[tx_index][0])
 
-            self.ch_list[ch_list_index, :] = self.ch_list[ch_list_index, :] \
-                    / self.ch_list[ch_list_index, 0] * np.abs(self.ch_list[ch_list_index, 0])
+                msg_pair = pmt.cons(pmt.make_dict(), msg_vec)
+                self.message_port_pub(pmt.intern("phase"), msg_pair)
 
-        # Phase alignment
-        self.phase = self.iterative_phase_alignment(self.ite_loop, 0.01)
+            return
+        
+        # Beamforming mode
+        if self.collected_ch_num >= self.tag:
+        
+            # Channel update
+            for tag_index in range(self.tag):
+                corr_vec[tag_index] = np.abs(np.dot(self.ch_list[tag_index, :], rx_ch.conj().T)) \
+                        / np.linalg.norm(self.ch_list[tag_index, :]) \
+                        / np.linalg.norm(rx_ch)
 
-        # Print the results of 1-tag case
-        if self.tag == 1:
-            phase_1 = np.zeros([self.tx, 1], dtype=float)
+            print "Frame from tag ", np.argmax(corr_vec) +1
+            
+            if np.argmax(corr_vec) > corr_thr:
+                self.ch_list[np.argmax(corr_vec), :] = rx_ch
+
+            # Phase alignment
+            self.phase = self.iterative_phase_alignment(self.ite_loop, 0.01)
+
+            # Send the aligned phase using message to each power source
+            msg_vec = pmt.make_f32vector(self.tx, 0)
             for tx_index in range(self.tx):
-                phase_1[tx_index] = - np.angle(self.ch_list[0][tx_index]) / 2 / np.pi
+                pmt.f32vector_set(msg_vec, tx_index, self.phase[tx_index][0])
 
-            #  print "The ideal phase for the 1-tag case: ", phase_1.T
-            #  print "The result of iterative phase alignment: ", self.phase.T
-
-        # Send the aligned phase using message to each power source
-        msg_vec = pmt.make_f32vector(self.tx, 0)
-        for tx_index in range(self.tx):
-            pmt.f32vector_set(msg_vec, tx_index, self.phase[tx_index][0])
-
-        msg_pair = pmt.cons(pmt.make_dict(), msg_vec)
-        self.message_port_pub(pmt.intern("phase"), msg_pair)
-
+            msg_pair = pmt.cons(pmt.make_dict(), msg_vec)
+            self.message_port_pub(pmt.intern("phase"), msg_pair)
 
     def iterative_phase_alignment(self, ite_loop, delta_phase_base):
         """TODO: Docstring for function.
@@ -143,7 +171,7 @@ class phase_alignment(gr.sync_block):
         phase_opt = np.zeros([self.tx, 1], dtype=float)
         power_opt = 0
 
-        rx_power_max = np.sum(np.abs(self.ch_list), axis=1)**2
+        rx_power_max = np.sum(np.abs(self.ch_list), axis=1, keepdims=True)**2
 
         print "The maximum power: ", rx_power_max
 
@@ -167,6 +195,6 @@ class phase_alignment(gr.sync_block):
                 phase_now = phase_opt
 
         # Normalization
-        phase_now = phase_now - phase_now[0]
+        phase_opt = phase_opt - phase_opt[0]
 
-        return phase_now
+        return phase_opt
