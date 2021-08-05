@@ -98,14 +98,13 @@ namespace gr {
                 {
                     d_tstamp ++;
 
-                    // We ignore some samples of the received signal when the RX starts 
-                    // to avoid hardware issues
-                    if(in_ed[i] >= d_thr && d_tstamp > 1000)   
+                    if(in_ed[i] >= d_thr)   
                     {
                         d_pkt_index = 0;
                         d_peak = 0;
                         
                         // Display the timestamp when detect the signal
+                        std::cout << "********************" << std::endl;
                         std::cout << "Timestamp: " << d_tstamp / d_samp_rate << " s" << std::endl;
 
                         d_rx_state = STATE_RX_SS;
@@ -117,8 +116,7 @@ namespace gr {
               
                 consume_each (noutput_items * d_fft_size);
                 return 0;
-
-
+            
             case STATE_RX_SS: 
                 
                 // Find the start of the packet (Fine time sync)
@@ -144,7 +142,6 @@ namespace gr {
                             d_pkt_index -= (d_detect_size - d_sym_pkt * d_fft_size);
                         else
                             throw std::runtime_error("Detection buffer cannot smaller than packet size");
-
 
                         d_rx_state = STATE_RX_DETECTED;
 

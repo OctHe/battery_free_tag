@@ -9,7 +9,7 @@ close all;
 
 %% System params
 init_loc = -0.2;
-D = 8;
+D = 4;
 Ntx = 4;
 
 Interval = 0.1;
@@ -27,19 +27,39 @@ mat_len = length(loc_vec);
 
 power_tag_norm = zeros(mat_len, mat_len);
 power_tag_rx = zeros(mat_len, mat_len);
+power_tag_max = zeros(mat_len, mat_len);
 for x = 1: mat_len
    for y = 1: mat_len
        loc_tag = [loc_vec(x); loc_vec(y)];
        Hf = channel_model(loc_tx, loc_tag, fc);
        Hb = channel_model(loc_tag, loc_rx, fc);
-       
-       power_tag_norm(x, y) = (Hf * Hf');
-       power_tag_rx(x, y) = sum(Hf) * sum(Hf)';
+              
+       power_tag_rx(x, y) = sum(Hf) * sum(Hf)' * Ptx;
+       power_tag_norm(x, y) = (Hf * Hf') * Ptx;
+       power_tag_max(x, y) = sum(abs(Hf)).^2 * Ptx;
    end
 end
-power_tag_norm = reshape(power_tag_norm, [], 1);
 power_tag_rx = reshape(power_tag_rx, [], 1);
+power_tag_norm = reshape(power_tag_norm, [], 1);
+power_tag_max = reshape(power_tag_max, [], 1);
 
+%% Activated rate
+thr = -6;      % Threshold to activate the tag dBm
+power_tag_rx_db = 10 * log10(power_tag_rx);
+power_tag_norm_db = 10 * log10(power_tag_norm);
+
+activate_rate_norm = sum(power_tag_norm_db < thr) / length(power_tag_norm_db)
+activate_rate_rx = sum(power_tag_rx_db < thr) / length(power_tag_rx_db)
+
+%% Figure
 figure; hold on;
-cdfplot(power_tag_norm ./ power_tag_norm);
-cdfplot(power_tag_rx ./ power_tag_norm);
+cdfplot(power_tag_rx_db);
+cdfplot(power_tag_norm_db);
+
+% figure; hold on;
+% cdfplot(power_tag_norm ./ power_tag_norm);
+% cdfplot(power_tag_rx ./ power_tag_norm);
+% 
+% figure; hold on;
+% cdfplot(power_tag_norm ./ power_tag_max);
+% cdfplot(power_tag_rx ./ power_tag_max);

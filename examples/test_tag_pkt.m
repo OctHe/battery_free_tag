@@ -12,18 +12,12 @@ samp_rate = 1e6;
 fft_size = 16;
 
 tx = 4;
-tag = 1;
 
 sym_sync = 8;
 sym_pd = 180;
 
 DC_INDEX = fft_size / 2 + 1;
 data_index = DC_INDEX + 1;
-
-disp_tag_reflection = false;
-
-read_raw_start = 1e6;     % read_start < read_size
-read_raw_size = 10e6;
 
 read_pkt_num = 3;
 
@@ -39,6 +33,19 @@ elseif tx == 2
     ce_data = [1, 1; 1, -1];
     ce_data_inv = [0.5, 0.5; 0.5, -0.5];
 
+elseif tx == 3
+    ce_data = [
+        1, 1, 1
+        1, -0.5 + 0.8660254j, -0.5 - 0.8660254j
+        1, -0.5 - 0.8660254j, -0.5 + 0.8660254j
+        ];
+    
+    ce_data_inv = 1 / 3 * [
+        1, 1, 1
+        1, -0.5 - 0.8660254j, -0.5 + 0.8660254j
+        1, -0.5 + 0.8660254j, -0.5 - 0.8660254j
+        ];
+    
 elseif tx == 4
     ce_data = [
         1, 1, 1, 1
@@ -64,15 +71,7 @@ ce_word = fft_size * ifft(ifftshift(ce_word_f));
 ce_word = kron(ce_data, ce_word.');
 
 %% File data
-if disp_tag_reflection
-    fid = fopen('debug_tag_reflection.bin', 'r');
-    raw = fread(fid, 2 * read_raw_size, 'float32');
-    fclose(fid);
-    raw = reshape(raw, 2, []).';
-    data = raw(read_raw_start +1: end, 1) + 1j * raw(read_raw_start +1: end, 2);
-end
-
-fid = fopen('debug_tag_pkt.bin', 'r');
+fid = fopen('tag_reflection_bf_dist_420cmx420cm/tag_pkt_ivn_4ps_60cm.bin', 'r');
 raw = fread(fid, 2 * read_pkt_size, 'float32');
 fclose(fid);
 raw = reshape(raw, 2, []).';
@@ -140,12 +139,3 @@ for pkt_index = 1: read_pkt_num
     end
     
 end
-
-%% Figure
-if disp_tag_reflection
-    figure; hold on;
-    plot(((read_raw_start +1): read_raw_size) / samp_rate, real(data));
-    plot(((read_raw_start +1): read_raw_size) / samp_rate, imag(data));
-    title('Raw data');
-end
-

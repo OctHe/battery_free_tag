@@ -412,7 +412,7 @@
     </param>
     <param>
       <key>tx</key>
-      <value>2</value>
+      <value>3</value>
     </param>
   </block>
   <block>
@@ -479,7 +479,7 @@
     </param>
     <param>
       <key>tx</key>
-      <value>2</value>
+      <value>3</value>
     </param>
   </block>
   <block>
@@ -989,7 +989,7 @@
     </param>
     <param>
       <key>value</key>
-      <value>0, 0.2</value>
+      <value>0, 0</value>
     </param>
   </block>
   <block>

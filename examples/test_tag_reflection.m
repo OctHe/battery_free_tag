@@ -8,7 +8,7 @@ read_raw_start = 0e6;     % read_start < read_size
 read_raw_size = 10e6;
 
 %% File data
-fid = fopen('multiple_tags_bf_4ps_420cmx420cm/tag_reflection_mtdeb_1.bin', 'r');
+fid = fopen('tag_reflection_bf_dist_420cmx420cm/tag_pkt_mtdeb_4ps_120cm.bin', 'r');
 raw = fread(fid, 2 * read_raw_size, 'float32');
 fclose(fid);
 raw = reshape(raw, 2, []).';

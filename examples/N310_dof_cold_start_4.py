@@ -31,9 +31,9 @@ class top_block(gr.top_block):
         ##################################################
         # RF and hardware variables
         self.center_freq_tx = center_freq_tx = 915e6
-        self.center_freq_rx = center_freq_rx = 919e6
-        self.power_gain_tx = power_gain_tx = 40
-        self.power_gain_rx = power_gain_rx = 30
+        self.center_freq_rx = center_freq_rx = 915e6
+        self.power_gain_tx = power_gain_tx = 57
+        self.power_gain_rx = power_gain_rx = 0
         self.sig_coeff = sig_coeff = 0.1
         self.samp_rate = samp_rate = 1e6
         self.fft_size = fft_size = 16
@@ -42,7 +42,7 @@ class top_block(gr.top_block):
         rx_file_name = "debug_tag_reflection.bin"
         pkt_file_name = "debug_tag_pkt.bin"
 
-        self.tx = tx = 4
+        self.tx = tx = 2
         self.sym_sync = sym_sync = 8
         self.sym_pd = sym_pd = 180
         self.work_mode = work_mode = 1
@@ -56,13 +56,13 @@ class top_block(gr.top_block):
         # Blocks
         ##################################################
         self.uhd_usrp_source_0 = uhd.usrp_source(
-        	",".join(("addr=192.168.10.2", "")),
+        	",".join(("serial=320F337", "")),
         	uhd.stream_args(
         		cpu_format="fc32",
         		channels=range(1),
         	),
         )
-        self.uhd_usrp_source_0.set_subdev_spec('A:0', 0)
+        self.uhd_usrp_source_0.set_subdev_spec('A:A', 0)
         self.uhd_usrp_source_0.set_samp_rate(samp_rate)
         self.uhd_usrp_source_0.set_time_unknown_pps(uhd.time_spec())
         self.uhd_usrp_source_0.set_center_freq(center_freq_rx, 0)
@@ -82,11 +82,13 @@ class top_block(gr.top_block):
         if tx == 1:
             self.uhd_usrp_sink_0.set_subdev_spec('A:0', 0)
         elif tx == 2:
-            self.uhd_usrp_sink_0.set_subdev_spec('A:0 B:0', 0)
+            self.uhd_usrp_sink_0.set_subdev_spec('A:0 B:1', 0)
+        elif tx == 3:
+            self.uhd_usrp_sink_0.set_subdev_spec('A:0 A:1 B:1', 0)
         elif tx == 4:
             self.uhd_usrp_sink_0.set_subdev_spec('A:0 A:1 B:0 B:1', 0)
         else:
-            print("TX Number error: TX must be one of [1, 2, 4]\n")
+            print("TX Number error: TX must be one of [1, 2, 3, 4]\n")
             return
         self.uhd_usrp_sink_0.set_samp_rate(samp_rate)
         self.uhd_usrp_sink_0.set_time_unknown_pps(uhd.time_spec())
@@ -131,10 +133,10 @@ class top_block(gr.top_block):
         self.connect((self.beamnet_symbol_sync_0, 0), (self.beamnet_packet_extraction_0, 2))
         self.connect((self.beamnet_packet_extraction_0, 0), (self.beamnet_packet_demux_0, 0))
 
-        #  self.connect((self.uhd_usrp_source_0, 0), (self.blocks_file_sink_0, 0))
-        #  self.connect((self.beamnet_energy_detector_0, 0), (self.blocks_file_sink_1, 0))
-        #  self.connect((self.beamnet_symbol_sync_0, 0), (self.blocks_file_sink_2, 0))
-        #  self.connect((self.beamnet_packet_extraction_0, 0), (self.blocks_file_sink_3, 0))
+        self.connect((self.uhd_usrp_source_0, 0), (self.blocks_file_sink_0, 0))
+        self.connect((self.beamnet_energy_detector_0, 0), (self.blocks_file_sink_1, 0))
+        self.connect((self.beamnet_symbol_sync_0, 0), (self.blocks_file_sink_2, 0))
+        self.connect((self.beamnet_packet_extraction_0, 0), (self.blocks_file_sink_3, 0))
 
 
 if __name__ == '__main__':

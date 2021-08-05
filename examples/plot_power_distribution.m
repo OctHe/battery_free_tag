@@ -22,7 +22,7 @@ ignore_pkt = 10;    % Ignore the *ignore_pkt* packets at the file begin
                     % because the USRP hardware
                         
 %% File path
-file_dir = "./power_distri_200cmx200cm/";
+file_dir = "./power_distri_cs_4ps_200cmx200cm/";
 files = dir(file_dir);
 
 %% DOF signal files
@@ -63,10 +63,12 @@ for file_index = 1: file_num
     power_norm_sc(file_index) = mean(power_norm_mat);
     power_max_sc(file_index) = mean(power_max_mat);
     power_noise_sc(file_index) = mean(power_noise_mat);
-        
-
+    
 
 end
+figure; hold on;
+cdfplot(sort(power_pd_dof));
+cdfplot(sort(power_pd_sc));
 
 figure; hold on;
 cdfplot(sort((power_pd_dof - power_noise_dof) ./ power_norm_dof));

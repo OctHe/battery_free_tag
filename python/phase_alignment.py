@@ -41,8 +41,17 @@ class phase_alignment(gr.sync_block):
         # Inverse of the ce_word matrix
         if tx == 1:
             self.ce_word_inv = np.array([1]);
+
         elif tx == 2:
             self.ce_word_inv = np.array([[0.5, 0.5], [0.5, -0.5]])
+
+        elif tx == 3:
+            self.ce_word_inv = 1. / 3 * np.array([
+                [1, 1, 1], 
+                [1, -0.5 - 0.8660254j, -0.5 + 0.8660254j], 
+                [1, -0.5 + 0.8660254j, -0.5 - 0.8660254j]
+                ])
+
         elif tx == 4:
             self.ce_word_inv = np.array([
                 [0.25, 0.25, 0.25, 0.25],

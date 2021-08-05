@@ -16,7 +16,7 @@ sync_word_f = [
     -0.9709+0.2393j, 0
     ];
 
-tx = 2;
+tx = 3;
 fft_size = 16;
 sym_sync = 4;
 sym_pd = 194;

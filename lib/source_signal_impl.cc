@@ -70,6 +70,12 @@ namespace gr {
                 {gr_complex(1, 0), gr_complex(-1, 0), gr_complex(1, 0), gr_complex(-1, 0)},
                 {gr_complex(1, 0), gr_complex(0, -1), gr_complex(-1, 0), gr_complex(0, 1)}
             };
+        else if(tx == 3)
+            d_ce_word = {
+                {gr_complex(1, 0), gr_complex(1, 0), gr_complex(1, 0)},
+                {gr_complex(1, 0), gr_complex(-0.5000, 0.8660254), gr_complex(-0.5000, -0.8660254)},
+                {gr_complex(1, 0), gr_complex(-0.5000, -0.8660254), gr_complex(-0.5000, 0.8660254)}
+            };
         else if(tx == 2)
             d_ce_word = {
                 {gr_complex(1, 0), gr_complex(1, 0)},
@@ -80,7 +86,7 @@ namespace gr {
                 {gr_complex(1, 0)}
             };
         else
-            throw std::runtime_error("The number of TXs must be {1, 2, 4}");
+            throw std::runtime_error("The number of TXs must be {1, 2, 3, 4}");
 
        d_weight = gr_complex(1, 0);     // Beamforming weight
        d_index = index % tx;            // TX index
@@ -125,11 +131,11 @@ namespace gr {
       gr_complex *out = (gr_complex *) output_items[0];
 
       int DC_INDEX = d_fft_size / 2;
-      int BASIC_INDEX = DC_INDEX +1; 
+      int data_index = DC_INDEX +1; 
       std::vector<gr_complex> ce_signal(d_fft_size, 0); 
       size_t block_size = output_signature()->sizeof_stream_item (0);
 
-      for(int i = 0; i < noutput_items; i++)
+      for(unsigned i = 0; i < noutput_items; i++)
       {
        switch(d_tx_state)
        {
@@ -138,8 +144,6 @@ namespace gr {
 
                 memcpy(out, d_sync_word.data(), block_size);
 
-                // volk_32fc_s32fc_multiply_32fc(out, out, d_weight, d_fft_size);
-                
                 out += d_fft_size;
                 d_sym_offset ++;
 
@@ -152,10 +156,8 @@ namespace gr {
 
             case STATE_TX_CE:
 
-                ce_signal[BASIC_INDEX] = d_ce_word[d_index][d_sym_offset];
+                ce_signal[data_index] = d_ce_word[d_index][d_sym_offset];
                 memcpy(out, ce_signal.data(), block_size);
-
-                // volk_32fc_s32fc_multiply_32fc(out, out, d_weight, d_fft_size);
 
                 out += d_fft_size;
                 d_sym_offset ++;
@@ -175,9 +177,9 @@ namespace gr {
                         
                         memset(out, 0, block_size);
                         if(d_mode & MODE_DOF_SIG)  // Cold start with distributed Orthogonal Frequency (DOF) signal
-                            out[BASIC_INDEX + d_index] = 1;
-                        else                    // Single-tone signal
-                            out[BASIC_INDEX] = 1;
+                            out[data_index + d_index] = 1;
+                        else                    // Cold start with single-carrier signal
+                            out[data_index] = 1;
 
                         volk_32fc_s32fc_multiply_32fc(out, out, d_weight, d_fft_size);
                         
@@ -189,7 +191,7 @@ namespace gr {
                     case STATE_TX_PD_BF:
 
                         memset(out, 0, block_size);
-                        out[BASIC_INDEX] = 1;
+                        out[data_index] = 1;
 
                         volk_32fc_s32fc_multiply_32fc(out, out, d_weight, d_fft_size);
 

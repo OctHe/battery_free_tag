@@ -17,21 +17,15 @@ sym_sync = file_options.sym_sync;
 tx = file_options.tx;
 sym_pd = file_options.sym_pd;
 
-pkt_size = sym_pd * fft_size;
+pkt_size = (sym_sync + tx + sym_pd) * fft_size;
 
-%% File path
-file_name = "multiple_tags_bf_4ps_420cmx420cm/tag_pkt_innout_1.bin";
+%% File name
+file_name = "multiple_tags_bf_interval_420cmx420cm/tag_pkt_mtdeb_4ps_60cm.bin";
 
 %% Correlation
-corr_thr = 0.95;
-
 [power_mat, ch_mat] = pkt_demux(file_name, file_options);
 
-corr_res = zeros(power_mat.pkt_num, 1);
-for pkt_index = 1: power_mat.pkt_num
-    corr_res(pkt_index) = abs(ch_mat(1, :) * ch_mat(pkt_index, :)') / ...
-        (norm(ch_mat(1, :)) * norm(ch_mat(pkt_index, :)));
-end
+[~, ~, corr_res] = tag_demux_2tags(ch_mat, power_mat.pkt_num, 0.95);
 
 %% Received packets
 read_file_size = pkt_size * power_mat.pkt_num;
@@ -50,15 +44,18 @@ for pkt_index = 1: power_mat.pkt_num
     plot(imag(read_pkt(:, pkt_index)));
 
 end
+
 %% Figures
 figure;
 stem((power_mat.pd - power_mat.noise) ./ power_mat.max);
+title('RX relative power');
 
 figure;
 stem(corr_res);
+title('Channel correlation');
 
 figure;
 plot(abs(ch_mat'));
-
+title('Channel matrix');
 
 
